@@ -39,4 +39,8 @@ application {
 test {
     // Use junit platform for unit tests
     useJUnitPlatform()
+
+    beforeTest { descriptor ->
+        logger.lifecycle("Running test: ${descriptor}")
+    }
 }
