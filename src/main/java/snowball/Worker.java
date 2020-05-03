@@ -15,13 +15,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 public class Worker implements Runnable {
-    private final LinkedBlockingQueue<URL> input;
-    private final LinkedBlockingQueue<String> output;
+    private final LinkedBlockingQueue<URLTransaction<URL>> input;
+    private final LinkedBlockingQueue<URLTransaction<String>> output;
     private final Path outputDir;
 
     private final static Logger log = Logger.getLogger(Worker.class.getName());
 
-    public Worker(LinkedBlockingQueue<URL> input, LinkedBlockingQueue<String> output, Path outputDir) {
+    public Worker(LinkedBlockingQueue<URLTransaction<URL>> input,
+                  LinkedBlockingQueue<URLTransaction<String>> output,
+                  Path outputDir) {
         this.input = input;
         this.output = output;
         this.outputDir = outputDir;
@@ -61,12 +63,13 @@ public class Worker implements Runnable {
         try {
             //noinspection InfiniteLoopStatement
             while (true) {
-                URL url = this.input.take();
+                URLTransaction<URL> inputURL = this.input.take();
 
-                Optional<Document> doc = this.getDocument(url);
+                Optional<Document> doc = this.getDocument(inputURL.url);
                 if (doc.isPresent()) {
-                    for (String u : this.getLinks(doc.get())) {
-                        this.output.put(u);
+                    for (String url : this.getLinks(doc.get())) {
+                        URLTransaction<String> out = new URLTransaction<>(url, Optional.of(inputURL.ttl + 1));
+                        this.output.put(out);
                     }
 
                     this.saveFile(doc.get());
