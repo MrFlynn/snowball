@@ -42,7 +42,7 @@ public class Worker implements Runnable {
     public void saveFile(Document doc) {
         Path finalPath = this.outputDir.resolve(doc.location());
         try {
-            Files.writeString(finalPath, doc.html());
+            Files.write(finalPath, doc.html().getBytes());
         } catch (IOException e) {
             log.warning(String.format("Could not write %s because %s", finalPath, e));
         }
