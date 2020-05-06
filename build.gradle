@@ -32,6 +32,9 @@ dependencies {
 
     // Web scraper.
     implementation 'org.jsoup:jsoup:1.13.1'
+
+    // CLI.
+    compile 'info.picocli:picocli:4.2.0'
 }
 
 application {
