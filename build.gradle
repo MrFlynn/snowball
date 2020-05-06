@@ -32,6 +32,7 @@ dependencies {
 
     // Web scraper.
     implementation 'org.jsoup:jsoup:1.13.1'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
 }
 
 application {
