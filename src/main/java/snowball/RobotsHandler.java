@@ -15,30 +15,36 @@ public class RobotsHandler {
         this.handlers = new HashMap<>();
     }
 
-    private boolean getRobots(URL url) {
-        URL robotsURL;
-        try {
-            robotsURL = new URL(String.format("%s://%s/robots.txt", url.getProtocol(), url.getHost()));
-            RobotsTxt robots = RobotsTxt.read(robotsURL.openStream());
+    private URL normalizeURL(URL url) throws MalformedURLException {
+        return new URL(String.format("%s://%s/robots.txt", url.getProtocol(), url.getHost()));
+    }
 
-            this.handlers.put(robotsURL, Optional.of(robots));
+    private boolean getRobots(URL url) {
+        try {
+            RobotsTxt robots = RobotsTxt.read(url.openStream());
+
+            this.handlers.put(url, Optional.of(robots));
             return true;
-        } catch (MalformedURLException e) {
-          return false;
         } catch (IOException e) {
             this.handlers.put(url, Optional.empty());
-            return false;
+            return true;
         }
     }
 
     public boolean validate(URL url) {
-        if (!this.handlers.containsKey(url)) {
-            if (!this.getRobots(url)) {
-                return false;
-            }
-        }
+        try {
+            URL normalized = this.normalizeURL(url);
 
-        Optional<RobotsTxt> handler = this.handlers.get(url);
-        return handler.map(robotsTxt -> robotsTxt.query(null, url.toString())).orElse(true);
+            if (!this.handlers.containsKey(normalized)) {
+                if (!this.getRobots(normalized)) {
+                    return false;
+                }
+            }
+
+            Optional<RobotsTxt> handler = this.handlers.get(normalized);
+            return handler.map(robotsTxt -> robotsTxt.query(null, url.toString())).orElse(true);
+        } catch (MalformedURLException e) {
+            return false;
+        }
     }
 }
