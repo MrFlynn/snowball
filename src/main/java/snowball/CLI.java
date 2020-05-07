@@ -1,5 +1,6 @@
-import java.nio.file.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import picocli.CommandLine.*;
+import picocli.CommandLine;
 
 // Documentation at https://picocli.info/quick-guide.html
 
@@ -58,6 +59,6 @@ class CLI implements Callable<Integer> {
     public static void main(String[] args) throws Exception {
 
         System.out.println("Hello world!");
-        int exitCode = new CommandLine(new CLI()).execute(args);
+        int exitCode = (new CommandLine(new CLI())).execute(args);
     }
 }
