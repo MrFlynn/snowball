@@ -19,15 +19,13 @@ public class RobotsHandler {
         return new URL(String.format("%s://%s/robots.txt", url.getProtocol(), url.getHost()));
     }
 
-    private boolean getRobots(URL url) {
+    private void getRobots(URL url) {
         try {
             RobotsTxt robots = RobotsTxt.read(url.openStream());
 
             this.handlers.put(url, Optional.of(robots));
-            return true;
         } catch (IOException e) {
             this.handlers.put(url, Optional.empty());
-            return true;
         }
     }
 
@@ -36,9 +34,7 @@ public class RobotsHandler {
             URL normalized = this.normalizeURL(url);
 
             if (!this.handlers.containsKey(normalized)) {
-                if (!this.getRobots(normalized)) {
-                    return false;
-                }
+                this.getRobots(normalized);
             }
 
             Optional<RobotsTxt> handler = this.handlers.get(normalized);
