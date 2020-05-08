@@ -3,21 +3,26 @@ package snowball;
 import java.util.concurrent.*;
 import java.util.Map;
 import java.net.URL;
+import java.math.BigInteger;
 
 class VisitedURLs {
 
     public VisitedURLs() {
 
         map = new ConcurrentHashMap<URL, Integer>();
+        totalSize = BigInteger.ZERO;
     }
 
     public VisitedURLs(int initialCapacity) {
 
         map = new ConcurrentHashMap<URL, Integer>(initialCapacity);
+        totalSize = BigInteger.ZERO;
     }
 
     // Returns the freq of URL after the insertion
     public Integer add(URL url) {
+
+        totalSize = totalSize.add(BigInteger.ONE);
 
         int freq = map.getOrDefault(url, 0);
         map.put(url, freq + 1);
@@ -37,6 +42,8 @@ class VisitedURLs {
             : "map.get(\"" + url.toString() +
               ") returned negative value " + freq.toString();
 
+        totalSize = totalSize.subtract(BigInteger.ONE);
+
         if (freq == 1)
             map.remove(url);
         else
@@ -45,10 +52,13 @@ class VisitedURLs {
         return true;
     }
 
-    public Integer size() {
+    // includeDuplicates=true  to count _all_ url's seen,
+    // includeDuplicates=false to only count distinct urls
+    public long size(boolean includeDuplicates) {
 
-        return map.size();
+        return includeDuplicates ? totalSize.longValue() : (long) map.size();
     }
 
     private Map<URL, Integer> map;
+    BigInteger totalSize;
 }
