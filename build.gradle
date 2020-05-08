@@ -12,7 +12,12 @@ plugins {
 
     // Apply the application plugin to add support for building a CLI application.
     id 'application'
+
+    // For building fat jars.
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
+
+version = '1.0'
 
 repositories {
     // Use jcenter for resolving dependencies.
@@ -33,6 +38,10 @@ dependencies {
     // Web scraper.
     implementation 'org.jsoup:jsoup:1.13.1'
 
+    // CLI.
+    implementation 'info.picocli:picocli:4.2.0'
+
+    // Robots.txt.
     implementation 'com.panforge:robots:1.4.4'
 }
 
