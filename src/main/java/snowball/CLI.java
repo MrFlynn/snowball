@@ -58,10 +58,9 @@ class CLI implements Callable<Integer> {
 
     @Option(
         names = { "--seed", "-s", "--seed-file" },
-        description = "Path to the seed.txt file. Required.",
-        required = true
+        description = "Path to the seed.txt file. Defaults to seeds.txt if not specified."
     )
-    public String seedFile;
+    public String seedFile = "seeds.txt";
 
     // @Option(
     //     names = "--help",
