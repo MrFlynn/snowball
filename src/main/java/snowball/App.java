@@ -44,6 +44,12 @@ class App implements Callable<Integer> {
     )
     private File seedFile = new File("./seeds.txt");
 
+    @Option(
+        names = "--max-size",
+        description = "Maximum size of document collection. Defaults to 20480 MB."
+    )
+    private Integer maxSize = 20480;
+
     @Override
     public Integer call() throws Exception {
         // Add manager entrypoint here...
