@@ -35,6 +35,9 @@ dependencies {
 
     // CLI.
     compile 'info.picocli:picocli:4.2.0'
+
+    implementation 'com.panforge:robots:1.4.4'
+
 }
 
 application {
