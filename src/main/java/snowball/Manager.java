@@ -14,17 +14,28 @@ import com.google.common.net.InternetDomainName;
 import org.apache.commons.io.FileUtils;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 
 public class Manager {
     static LinkedBlockingQueue<URLTransaction<URL>> input = new LinkedBlockingQueue<>(); //potentially unsafe urls
     static LinkedBlockingQueue<URLTransaction<String>> output = new LinkedBlockingQueue<>(); //output sanitized urls
-    static ExecutorService service = Executors.newFixedThreadPool(50);
+    static RobotsHandler robotsHandler = new RobotsHandler();
+    static VisitedURLs visitedURLs  = new VisitedURLs();
+    public static AtomicInteger savedFileCounter = new AtomicInteger(0);
+    private Integer maxDepth;
+    private Integer maxPages;
+    private Path outputDir;
+    private Integer threads;
+    private File seedFile;
+    private Integer maxSize;
+
+
     static ThreadPoolExecutor threadPoolExecutor =
             new ThreadPoolExecutor(
                     6,
-                    6,
+                    10,
                     2,
                     TimeUnit.MINUTES,
                     new LinkedBlockingQueue<Runnable>()
@@ -32,11 +43,21 @@ public class Manager {
     static final String OUTPUTDUMP = "savedFiles";
     static final int CRAWLLIMIT = 20; // in MB
 
+    public Manager(Integer maxDepth, Integer maxPages, Path outputDir, Integer threads,
+                   File seedFile, Integer maxSize){
+        this.maxDepth = maxDepth;
+        this.maxPages = maxPages;
+        this.outputDir = outputDir;
+        this.threads = threads;
+        this.seedFile = seedFile;
+        this.maxSize = maxSize;
+    }
+
 
     private final static Logger log = Logger.getLogger(Worker.class.getName());
 
-    public static void loadSeeds(String path) throws FileNotFoundException {
-        Scanner scanner = new Scanner(new File(path));
+    public static void loadSeeds(File path) throws FileNotFoundException {
+        Scanner scanner = new Scanner(path);
         while (scanner.hasNextLine()) {
             URLTransaction<String> seed = new URLTransaction<>(scanner.nextLine(), Optional.of(0));
             output.add(seed);
@@ -78,39 +99,29 @@ public class Manager {
         return ((FileUtils.sizeOf(new File(OUTPUTDUMP))/Long.valueOf(1000000)) <= CRAWLLIMIT);
     }
 
-    public static void beginCrawl(Path outputDir) throws InterruptedException, MalformedURLException {
-        File f = new File(OUTPUTDUMP);
+    public void beginCrawl() throws InterruptedException, MalformedURLException {
 
-        while ( (!output.isEmpty() || threadPoolExecutor.getActiveCount() > 0) && crawlLimitNotMet()) {
+        while ( (!output.isEmpty() || threadPoolExecutor.getActiveCount() > 0)
+            && crawlLimitNotMet() /*&& new File(this.outputDir.toString()).list().length */) {
             URLTransaction<String> url = output.take();
-            String sanitizedURL = sanitize(url);
-            if (isURLValid(sanitizedURL)) {
-                input.add(new URLTransaction<>(new URL(sanitizedURL), Optional.of(0)));
+            String sanitizedURLstr = sanitize(url);
+
+            if (isURLValid(sanitizedURLstr) && robotsHandler.validate(new URL(sanitizedURLstr))
+                    && url.ttl < this.maxDepth && !visitedURLs.map.containsKey( new URL(sanitizedURLstr) )) {
+                input.add(new URLTransaction<>(new URL(sanitizedURLstr), Optional.of(url.ttl)));
             }
-            //TODO check if has been visited - Ryans component
-            //TODO check against robots.txt
+            visitedURLs.add(sanitizedURLstr);
 
-            threadPoolExecutor.execute(new Worker(input, output, outputDir));
+            threadPoolExecutor.execute(new Worker(input, output, this.outputDir));
         }
-
         threadPoolExecutor.shutdownNow();
     }
 
-    public static void main( String[] args ) throws IOException, InterruptedException {
-
-        long startTime = System.nanoTime();
-
-        loadSeeds("seed_file.txt");
+    public void execute() throws FileNotFoundException, MalformedURLException, InterruptedException {
+        loadSeeds(this.seedFile);
         log.info("Seed URLs have been loaded");
 
-        Path outputDir = Paths.get(OUTPUTDUMP);
-
-        beginCrawl(outputDir);
+        beginCrawl();
         log.info("Crawl has completed");
-
-        long endTime = System.nanoTime();
-
-        long duration = (endTime - startTime)/1000000000;  // divided by 1000000000 to get sec
-        System.out.println("Crawl took: " + duration + " seconds");
     }
 }

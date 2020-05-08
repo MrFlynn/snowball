@@ -9,18 +9,18 @@ class VisitedURLs {
 
     public VisitedURLs() {
 
-        map = new ConcurrentHashMap<URL, Integer>();
+        map = new ConcurrentHashMap<String, Integer>();
         totalSize = BigInteger.ZERO;
     }
 
     public VisitedURLs(int initialCapacity) {
 
-        map = new ConcurrentHashMap<URL, Integer>(initialCapacity);
+        map = new ConcurrentHashMap<String, Integer>(initialCapacity);
         totalSize = BigInteger.ZERO;
     }
 
     // Returns the freq of URL after the insertion
-    public Integer add(URL url) {
+    public Integer add(String url) {
 
         totalSize = totalSize.add(BigInteger.ONE);
 
@@ -31,7 +31,7 @@ class VisitedURLs {
 
     // Returns true if the url was properly removed,
     // false if the url wasn't in the map
-    public boolean remove(URL url) {
+    public boolean remove(String url) {
 
         if (!map.containsKey(url)) return false;
 
@@ -59,6 +59,6 @@ class VisitedURLs {
         return includeDuplicates ? totalSize.longValue() : (long) map.size();
     }
 
-    private Map<URL, Integer> map;
+    public Map<String, Integer> map;
     BigInteger totalSize;
 }

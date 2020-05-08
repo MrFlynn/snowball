@@ -1,6 +1,7 @@
 package snowball;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 
@@ -46,13 +47,15 @@ class App implements Callable<Integer> {
 
     @Option(
         names = "--max-size",
-        description = "Maximum size of document collection. Defaults to 20480 MB."
+        description = "Maximum size of document collection in MB. Defaults to 20480 MB."
     )
     private Integer maxSize = 20480;
 
     @Override
     public Integer call() throws Exception {
-        // Add manager entrypoint here...
+        Manager manager = new Manager(maxDepth, maxPages, outputDir, threads, seedFile, maxSize);
+        manager.execute();
+
         return 0;
     }
 
