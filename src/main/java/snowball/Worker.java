@@ -1,5 +1,6 @@
 package snowball;
 
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -29,9 +30,10 @@ public class Worker implements Runnable {
         this.outputDir = outputDir;
     }
 
-    private Optional<Document> getDocument(URL url) {
+    public Optional<Document> getDocument(URL url) {
         try {
-            return Optional.ofNullable(Jsoup.connect(url.toString()).get());
+            Connection.Response resp = Jsoup.connect(url.toString()).timeout(1000).execute();
+            return Optional.ofNullable(resp.parse());
         } catch (Exception e) {
             log.warning(String.format("Could not get document %s because %s", url, e));
         }

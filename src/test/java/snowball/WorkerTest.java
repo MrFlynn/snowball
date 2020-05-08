@@ -1,16 +1,22 @@
 package snowball;
 
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
+import org.jsoup.UnsupportedMimeTypeException;
 import org.jsoup.nodes.Document;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,4 +54,11 @@ class WorkerTest {
 //        File savedFile = outputDir.resolve("example.com").toFile();
 //        assertTrue(savedFile.exists() && !savedFile.isDirectory());
 //    }
+
+    @Test
+    void InvalidContentType() throws IOException {
+        URL invalidContent = new URL("https://web.stanford.edu/~jurafsky/slp3/3.pdf");
+        assertEquals(Optional.empty(), this.worker.getDocument(invalidContent));
+
+    }
 }

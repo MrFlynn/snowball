@@ -1,7 +1,7 @@
 package snowball;
 
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 public class Manager {
     static LinkedBlockingQueue<URLTransaction<URL>> input = new LinkedBlockingQueue<>(); //potentially unsafe urls
     static LinkedBlockingQueue<URLTransaction<String>> output = new LinkedBlockingQueue<>(); //output sanitized urls
-    static ExecutorService service = Executors.newFixedThreadPool(5);
+    static ExecutorService service = Executors.newFixedThreadPool(50);
     static ThreadPoolExecutor threadPoolExecutor =
             new ThreadPoolExecutor(
                     6,
@@ -89,7 +89,9 @@ public class Manager {
         threadPoolExecutor.shutdownNow();
     }
 
-    public static void main( String[] args ) throws FileNotFoundException, MalformedURLException, InterruptedException {
+    public static void main( String[] args ) throws IOException, InterruptedException {
+
+        long startTime = System.nanoTime();
 
         loadSeeds("seed_file.txt");
         log.info("Seed URLs have been loaded");
@@ -98,5 +100,12 @@ public class Manager {
 
         beginCrawl(outputDir);
         log.info("Crawl has completed");
+
+        long endTime = System.nanoTime();
+
+        long duration = (endTime - startTime)/1000000000;  // divided by 1000000000 to get sec
+        System.out.println("Crawl took: " + duration + " seconds");
+
+
     }
 }
