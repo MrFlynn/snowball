@@ -9,6 +9,8 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.Scanner;
 import java.io.File;
+
+import com.google.common.net.InternetDomainName;
 import org.apache.commons.io.FileUtils;
 
 import java.util.concurrent.*;
@@ -60,13 +62,18 @@ public class Manager {
     public static boolean isURLValid(String url){
         try {
             URL currUrl = new URL(url);
-            return !currUrl.getProtocol().isEmpty() && !currUrl.getHost().isEmpty();
+
+            return !currUrl.getProtocol().isEmpty() && !currUrl.getHost().isEmpty()
+                    && isEduPage(currUrl);
         } catch (MalformedURLException e) {
             log.info(String.format("Invalid URL: %s", url));
             return false;
         }
     }
 
+    public static boolean isEduPage(URL url) throws MalformedURLException {
+        return InternetDomainName.from(url.getHost()).publicSuffix().toString().equals("edu");
+    }
     public static boolean crawlLimitNotMet(){
         return ((FileUtils.sizeOf(new File(OUTPUTDUMP))/Long.valueOf(1000000)) <= CRAWLLIMIT);
     }
@@ -105,7 +112,5 @@ public class Manager {
 
         long duration = (endTime - startTime)/1000000000;  // divided by 1000000000 to get sec
         System.out.println("Crawl took: " + duration + " seconds");
-
-
     }
 }
