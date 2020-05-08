@@ -47,13 +47,16 @@ class WorkerTest {
         assertEquals(this.worker.getLinks(this.doc), urls);
     }
 
-//    @Test // TODO will fix later
-//    void saveDocument() {
-//        worker.saveFile(this.doc);
-//
-//        File savedFile = outputDir.resolve("example.com").toFile();
-//        assertTrue(savedFile.exists() && !savedFile.isDirectory());
-//    }
+    @Test // TODO will fix later
+    void saveDocument() throws MalformedURLException {
+        URLTransaction urlTransaction = new URLTransaction<>(new URL("https://default.com/blah"), Optional.of(0));
+
+        worker.saveFile(this.doc, urlTransaction);
+        String filename = this.worker.createFileName(urlTransaction);
+        File savedFile = outputDir.resolve(filename).toFile();
+
+        assertTrue(savedFile.exists() && !savedFile.isDirectory());
+    }
 
     @Test
     void InvalidContentType() throws IOException {
