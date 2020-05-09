@@ -32,7 +32,7 @@ public class Worker implements Runnable {
 
     public Optional<Document> getDocument(URL url) {
         try {
-            Connection.Response resp = Jsoup.connect(url.toString()).timeout(1000).execute();
+            Connection.Response resp = Jsoup.connect(url.toString()).timeout(5000).execute();
             return Optional.ofNullable(resp.parse());
         } catch (Exception e) {
             log.warning(String.format("Could not get document %s because %s", url, e));
@@ -55,12 +55,11 @@ public class Worker implements Runnable {
         String url = inputURL.url.toString();
         String fileName;
         int titleStart, titleEnd;
-        if(url.lastIndexOf("/") == url.length()-1){
+        if (url.lastIndexOf("/") == url.length()-1) {
             String newUrl = url.substring(0, url.lastIndexOf("/"));
             titleStart = newUrl.lastIndexOf("/") + 1;
             titleEnd = newUrl.length();
-        }
-        else{
+        } else {
             titleStart = url.lastIndexOf("/")+1;
             titleEnd = url.length()-1;
         }
@@ -71,7 +70,7 @@ public class Worker implements Runnable {
         return fileName;
     }
 
-    public List<String> getLinks(Document doc) throws IllegalAccessException {
+    public List<String> getLinks(Document doc) {
         List<String> urls = new ArrayList<>();
 
         for (Element link : doc.select("a[href]")) {
@@ -85,18 +84,20 @@ public class Worker implements Runnable {
     public void run() {
         try {
             //noinspection InfiniteLoopStatement
-            URLTransaction<URL> inputURL = this.input.take();
+            while (true) {
+                URLTransaction<URL> inputURL = this.input.take();
 
-            Optional<Document> doc = this.getDocument(inputURL.url);
-            if (doc.isPresent()) {
-                for (String url : this.getLinks(doc.get())) {
-                    URLTransaction<String> out = new URLTransaction<>(url, Optional.of(inputURL.ttl + 1));
-                    this.output.put(out);
+                Optional<Document> doc = this.getDocument(inputURL.url);
+                if (doc.isPresent()) {
+                    for (String url : this.getLinks(doc.get())) {
+                        URLTransaction<String> out = new URLTransaction<>(url, Optional.of(inputURL.ttl + 1));
+                        this.output.put(out);
+                    }
+
+                    this.saveFile(doc.get(), inputURL);
                 }
-
-                this.saveFile(doc.get(), inputURL);
             }
-        } catch (InterruptedException | IllegalAccessException e) {
+        } catch (InterruptedException e) {
             log.info("Thread exiting...");
         }
     }

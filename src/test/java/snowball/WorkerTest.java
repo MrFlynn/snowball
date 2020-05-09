@@ -42,14 +42,14 @@ class WorkerTest {
     }
 
     @Test
-    void getLinks() throws IllegalAccessException {
+    void getLinks() {
         List<String> urls = Arrays.asList("https://default.com", "https://inlined.com", "https://example.com#test", "https://parameter.com?param=test");
         assertEquals(this.worker.getLinks(this.doc), urls);
     }
 
-    @Test // TODO will fix later
+    @Test
     void saveDocument() throws MalformedURLException {
-        URLTransaction urlTransaction = new URLTransaction<>(new URL("https://default.com/blah"), Optional.of(0));
+        URLTransaction<URL> urlTransaction = new URLTransaction<>(new URL("https://default.com/blah"), Optional.of(0));
 
         worker.saveFile(this.doc, urlTransaction);
         String filename = this.worker.createFileName(urlTransaction);

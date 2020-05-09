@@ -42,8 +42,10 @@ dependencies {
     implementation 'info.picocli:picocli:4.2.0'
 
     // Robots.txt.
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
     implementation 'com.panforge:robots:1.4.4'
+
+    // IO tools.
+    implementation 'commons-io:commons-io:2.6'
 }
 
 application {

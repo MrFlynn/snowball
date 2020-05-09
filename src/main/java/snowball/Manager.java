@@ -1,11 +1,10 @@
 package snowball;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
 import java.io.File;
@@ -14,8 +13,8 @@ import com.google.common.net.InternetDomainName;
 import org.apache.commons.io.FileUtils;
 
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 
 public class Manager {
@@ -23,34 +22,33 @@ public class Manager {
     static LinkedBlockingQueue<URLTransaction<String>> output = new LinkedBlockingQueue<>(); //output sanitized urls
     static RobotsHandler robotsHandler = new RobotsHandler();
     static VisitedURLs visitedURLs  = new VisitedURLs();
-    public static AtomicInteger savedFileCounter = new AtomicInteger(0);
-    private Integer maxDepth;
-    private Integer maxPages;
-    private Path outputDir;
-    private Integer threads;
-    private File seedFile;
-    private Integer maxSize;
+    private final Integer maxDepth;
+    private final Integer maxPages;
+    private final Path outputDir;
+    private final File seedFile;
+    private final Integer maxSize;
+    private final Integer threads;
+    private final ThreadPoolExecutor threadPoolExecutor;
 
-
-    static ThreadPoolExecutor threadPoolExecutor =
-            new ThreadPoolExecutor(
-                    6,
-                    10,
-                    2,
-                    TimeUnit.MINUTES,
-                    new LinkedBlockingQueue<Runnable>()
-            );
+    private static final Pattern htmlPattern = Pattern.compile("^(.*\\.htm|.*\\.html|^([^.]+))$");
 
     public Manager(Integer maxDepth, Integer maxPages, Path outputDir, Integer threads,
-                   File seedFile, Integer maxSize){
+                   File seedFile, Integer maxSize) {
         this.maxDepth = maxDepth;
         this.maxPages = maxPages;
         this.outputDir = outputDir;
-        this.threads = threads;
         this.seedFile = seedFile;
         this.maxSize = maxSize;
-    }
+        this.threads = threads;
 
+        this.threadPoolExecutor = new ThreadPoolExecutor(
+            threads,
+            threads,
+            2,
+            TimeUnit.MINUTES,
+            new LinkedBlockingQueue<>()
+        );
+    }
 
     private final static Logger log = Logger.getLogger(Worker.class.getName());
 
@@ -62,7 +60,7 @@ public class Manager {
         }
     }
 
-    public static String sanitize(URLTransaction<String> url) throws MalformedURLException {
+    public static String sanitize(URLTransaction<String> url)  {
         String sanitizedUrl = url.url;
 
         int queryIndex = sanitizedUrl.indexOf("?");
@@ -78,28 +76,38 @@ public class Manager {
         return sanitizedUrl;
     }
 
-    public static boolean isURLValid(String url){
+    public static boolean isHTML(URL url) {
+        return htmlPattern.matcher(url.getFile()).find();
+    }
+
+    public static boolean isURLValid(String url) {
         try {
             URL currUrl = new URL(url);
 
             return !currUrl.getProtocol().isEmpty() && !currUrl.getHost().isEmpty()
-                    && isEduPage(currUrl);
+                    && isEduPage(currUrl) && isHTML(currUrl);
         } catch (MalformedURLException e) {
             log.info(String.format("Invalid URL: %s", url));
             return false;
         }
     }
 
-    public static boolean isEduPage(URL url) throws MalformedURLException {
-        return InternetDomainName.from(url.getHost()).publicSuffix().toString().equals("edu");
+    public static boolean isEduPage(URL url) {
+        try {
+            //noinspection UnstableApiUsage
+            return InternetDomainName.from(url.getHost()).publicSuffix().toString().equals("edu");
+        } catch (NullPointerException e) {
+            return false;
+        }
     }
-    public boolean crawlSizeLimitNotMet(){
-        return ((FileUtils.sizeOf(new File(this.outputDir.toString()))/Long.valueOf(1000000)) <= this.maxSize);
+
+    public boolean crawlSizeLimitNotMet() {
+        return ((FileUtils.sizeOf(new File(this.outputDir.toString()))/ 1000000L) <= this.maxSize);
     }
 
     public boolean continueCrawl(){
         if( (!output.isEmpty() || threadPoolExecutor.getActiveCount() > 0) &&
-                new File(this.outputDir.toString()).list().length <= this.maxPages ){
+                Objects.requireNonNull(new File(this.outputDir.toString()).list()).length <= this.maxPages ){
             if (this.maxSize != null ){
                 return crawlSizeLimitNotMet();
             }
@@ -110,19 +118,23 @@ public class Manager {
     }
 
     public void beginCrawl() throws InterruptedException, MalformedURLException {
-
-        while ( continueCrawl()) {
-            URLTransaction<String> url = output.take();
-            String sanitizedURLstr = sanitize(url);
-
-            if (isURLValid(sanitizedURLstr) && robotsHandler.validate(new URL(sanitizedURLstr))
-                    && url.ttl < this.maxDepth && !visitedURLs.map.containsKey( new URL(sanitizedURLstr) )) {
-                input.add(new URLTransaction<>(new URL(sanitizedURLstr), Optional.of(url.ttl)));
-            }
-            visitedURLs.add(sanitizedURLstr);
-
+        for (int i = 0; i < this.threads; i++) {
             threadPoolExecutor.execute(new Worker(input, output, this.outputDir));
         }
+
+        while (continueCrawl()) {
+            URLTransaction<String> url = output.take();
+            String sanitizedURLString = sanitize(url);
+
+            if (isURLValid(sanitizedURLString) && robotsHandler.validate(new URL(sanitizedURLString))
+                    && url.ttl < this.maxDepth
+                    && !visitedURLs.map.containsKey(new URL(sanitizedURLString).toString())) {
+                input.add(new URLTransaction<>(new URL(sanitizedURLString), Optional.of(url.ttl)));
+            }
+
+            visitedURLs.add(sanitizedURLString);
+        }
+
         threadPoolExecutor.shutdownNow();
     }
 
