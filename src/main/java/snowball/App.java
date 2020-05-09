@@ -47,9 +47,9 @@ class App implements Callable<Integer> {
 
     @Option(
         names = "--max-size",
-        description = "Maximum size of document collection in MB. Defaults to 20480 MB."
+        description = "Maximum size of document collection in MB."
     )
-    private Integer maxSize = 20480;
+    private Integer maxSize = null;
 
     @Override
     public Integer call() throws Exception {

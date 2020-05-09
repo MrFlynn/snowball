@@ -40,8 +40,6 @@ public class Manager {
                     TimeUnit.MINUTES,
                     new LinkedBlockingQueue<Runnable>()
             );
-    static final String OUTPUTDUMP = "savedFiles";
-    static final int CRAWLLIMIT = 20; // in MB
 
     public Manager(Integer maxDepth, Integer maxPages, Path outputDir, Integer threads,
                    File seedFile, Integer maxSize){
@@ -95,14 +93,25 @@ public class Manager {
     public static boolean isEduPage(URL url) throws MalformedURLException {
         return InternetDomainName.from(url.getHost()).publicSuffix().toString().equals("edu");
     }
-    public static boolean crawlLimitNotMet(){
-        return ((FileUtils.sizeOf(new File(OUTPUTDUMP))/Long.valueOf(1000000)) <= CRAWLLIMIT);
+    public boolean crawlSizeLimitNotMet(){
+        return ((FileUtils.sizeOf(new File(this.outputDir.toString()))/Long.valueOf(1000000)) <= this.maxSize);
+    }
+
+    public boolean continueCrawl(){
+        if( (!output.isEmpty() || threadPoolExecutor.getActiveCount() > 0) &&
+                new File(this.outputDir.toString()).list().length <= this.maxPages ){
+            if (this.maxSize != null ){
+                return crawlSizeLimitNotMet();
+            }
+            return true;
+        }
+
+        return false;
     }
 
     public void beginCrawl() throws InterruptedException, MalformedURLException {
 
-        while ( (!output.isEmpty() || threadPoolExecutor.getActiveCount() > 0)
-            && crawlLimitNotMet() /*&& new File(this.outputDir.toString()).list().length */) {
+        while ( continueCrawl()) {
             URLTransaction<String> url = output.take();
             String sanitizedURLstr = sanitize(url);
 
@@ -122,6 +131,8 @@ public class Manager {
         log.info("Seed URLs have been loaded");
 
         beginCrawl();
+        
+        System.out.println(this.maxSize);
         log.info("Crawl has completed");
     }
 }
