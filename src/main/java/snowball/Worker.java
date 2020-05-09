@@ -1,5 +1,6 @@
 package snowball;
 
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -29,9 +30,10 @@ public class Worker implements Runnable {
         this.outputDir = outputDir;
     }
 
-    private Optional<Document> getDocument(URL url) {
+    public Optional<Document> getDocument(URL url) {
         try {
-            return Optional.ofNullable(Jsoup.connect(url.toString()).get());
+            Connection.Response resp = Jsoup.connect(url.toString()).timeout(5000).execute();
+            return Optional.ofNullable(resp.parse());
         } catch (Exception e) {
             log.warning(String.format("Could not get document %s because %s", url, e));
         }
@@ -39,8 +41,9 @@ public class Worker implements Runnable {
         return Optional.empty();
     }
 
-    public void saveFile(Document doc) {
-        Path finalPath = this.outputDir.resolve(doc.location());
+    public void saveFile(Document doc, URLTransaction<URL> inputURL) {
+        String fileName = createFileName(inputURL);
+        Path finalPath = this.outputDir.resolve(fileName);
         try {
             Files.write(finalPath, doc.html().getBytes());
         } catch (IOException e) {
@@ -48,11 +51,30 @@ public class Worker implements Runnable {
         }
     }
 
+    public String createFileName(URLTransaction<URL> inputURL){
+        String url = inputURL.url.toString();
+        String fileName;
+        int titleStart, titleEnd;
+        if (url.lastIndexOf("/") == url.length()-1) {
+            String newUrl = url.substring(0, url.lastIndexOf("/"));
+            titleStart = newUrl.lastIndexOf("/") + 1;
+            titleEnd = newUrl.length();
+        } else {
+            titleStart = url.lastIndexOf("/")+1;
+            titleEnd = url.length()-1;
+        }
+
+        fileName = inputURL.url.getHost()
+                + url.substring(titleStart, titleEnd);
+
+        return fileName;
+    }
+
     public List<String> getLinks(Document doc) {
         List<String> urls = new ArrayList<>();
 
         for (Element link : doc.select("a[href]")) {
-            urls.add(link.attr("href"));
+            urls.add(link.attr("abs:href"));
         }
 
         return urls;
@@ -72,7 +94,7 @@ public class Worker implements Runnable {
                         this.output.put(out);
                     }
 
-                    this.saveFile(doc.get());
+                    this.saveFile(doc.get(), inputURL);
                 }
             }
         } catch (InterruptedException e) {

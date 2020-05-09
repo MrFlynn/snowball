@@ -3,6 +3,7 @@ package snowball;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -21,7 +22,10 @@ public class RobotsHandler {
 
     private void getRobots(URL url) {
         try {
-            RobotsTxt robots = RobotsTxt.read(url.openStream());
+            URLConnection conn = url.openConnection();
+            conn.setConnectTimeout(1000);
+
+            RobotsTxt robots = RobotsTxt.read(conn.getInputStream());
 
             this.handlers.put(url, Optional.of(robots));
         } catch (IOException e) {
