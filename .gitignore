@@ -34,3 +34,6 @@ build
 .DS_Store
 Thumbs.db
 .idea/
+
+# Configuration files
+seeds.txt
