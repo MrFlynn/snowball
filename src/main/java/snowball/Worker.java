@@ -53,21 +53,7 @@ public class Worker implements Runnable {
 
     public String createFileName(URLTransaction<URL> inputURL){
         String url = inputURL.url.toString();
-        String fileName;
-        int titleStart, titleEnd;
-        if (url.lastIndexOf("/") == url.length()-1) {
-            String newUrl = url.substring(0, url.lastIndexOf("/"));
-            titleStart = newUrl.lastIndexOf("/") + 1;
-            titleEnd = newUrl.length();
-        } else {
-            titleStart = url.lastIndexOf("/")+1;
-            titleEnd = url.length()-1;
-        }
-
-        fileName = inputURL.url.getHost()
-                + url.substring(titleStart, titleEnd);
-
-        return fileName;
+        return url.replaceAll("/", "|");
     }
 
     public List<String> getLinks(Document doc) {
