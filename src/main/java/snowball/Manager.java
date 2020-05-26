@@ -1,6 +1,7 @@
 package snowball;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -138,7 +139,20 @@ public class Manager {
         threadPoolExecutor.shutdownNow();
     }
 
-    public void execute() throws FileNotFoundException, MalformedURLException, InterruptedException {
+    public void execute()
+            throws FileNotFoundException, MalformedURLException, InterruptedException, NoSuchMethodException {
+        File outDir = this.outputDir.toFile();
+        if (!(outDir.exists() && outDir.isDirectory())) {
+            log.warning(String.format("Output directory %s does not exist. Creating...", this.outputDir.toString()));
+            if (!outDir.mkdir()) {
+                log.throwing(
+                        Manager.class.getName(),
+                        Manager.class.getMethod("beginCrawl").getName(),
+                        new IOException(String.format("Could not create output directory %s", outDir.toString()))
+                );
+            }
+        }
+
         loadSeeds(this.seedFile);
         log.info("Seed URLs have been loaded");
 
