@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build-and-publish:
+    name: Build Docker container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: azure/docker-login@v2
+        with:
+          username: mrflynn
+          password: ${{ secrets.DOCKER_REGISTRY_KEY }}
+      - name: Build image
+        run: |
+          docker build -t mrflynn/snowball:${GITHUB_REF##*/} \
+            --build-arg VERSION=${GITHUB_REF##*/} .
+      - name: Tag image
+        run: |
+          docker tag mrflynn/snowball:${GITHUB_REF##*/} \
+            mrflynn/snowball:latest
+      - name: Publish image
+        run: |
+          docker push mrflynn/snowball:${GITHUB_REF##*/}
+          docker push mrflynn/snowball:latest
+
