@@ -97,7 +97,7 @@ public class Manager {
         try {
             //noinspection UnstableApiUsage
             return InternetDomainName.from(url.getHost()).publicSuffix().toString().equals("edu");
-        } catch (NullPointerException e) {
+        } catch (Exception e) {
             return false;
         }
     }
